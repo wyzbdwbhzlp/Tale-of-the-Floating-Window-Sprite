@@ -5,9 +5,10 @@ public class Spirit : Entity
 {
     public SpiritIdleState idleState { get; private set; }
     public SpiritMoveState moveState { get; private set; }
-    private float moneyPerSecond;
-    private RarityType rarity;
-    private SpiritPropety spiritPropety;
+    [Header("æ´¡È Ù–‘")]
+    [SerializeField]private float moneyPerSecond;
+    [SerializeField]private RarityType rarity;
+    [SerializeField]private SpiritPropety spiritPropety;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     public override void Awake()
     {

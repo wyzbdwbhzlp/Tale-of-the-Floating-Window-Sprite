@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -14,26 +15,23 @@ using UnityEngine;
     public class SpiritSaveData
     {
         public List<SpiritData> ownedSpirits = new List<SpiritData>();
+        public long lastSaveTime; // 存储最后一次保存时间 (Ticks)
 
-    }
+}
 public class SpiritGameManager : MonoBehaviour
 {
-  public static SpiritGameManager Instance { get; private set; }
-  private Dictionary<string, SpiritData> ownedSpirits = new Dictionary<string, SpiritData>();
+    
+    private Dictionary<string, SpiritData> ownedSpirits = new Dictionary<string, SpiritData>();
     private string savePath;
+
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
+       
 
         savePath = Path.Combine(Application.persistentDataPath, "spirits.json");
-        LoadGame(); // 启动时尝试
+        LoadGame();
     }
+
     public void RegisterSpirit(SpiritData data)
     {
         if (!ownedSpirits.ContainsKey(data.id))
@@ -42,14 +40,12 @@ public class SpiritGameManager : MonoBehaviour
             Debug.Log($"注册Spirit:{data.id}");
         }
     }
-    public SpiritData GetSpirit(string id)
-    {
-        return ownedSpirits.ContainsKey(id)?ownedSpirits[id]:null;
-    }
-    public IEnumerable<SpiritData> GetAllSpirits()
-    {
-        return ownedSpirits.Values;
-    }
+
+    public SpiritData GetSpirit(string id) =>
+        ownedSpirits.ContainsKey(id) ? ownedSpirits[id] : null;
+
+    public IEnumerable<SpiritData> GetAllSpirits() => ownedSpirits.Values;
+
     public void RemoveSpirit(string id)
     {
         if (ownedSpirits.ContainsKey(id))
@@ -58,15 +54,20 @@ public class SpiritGameManager : MonoBehaviour
             Debug.Log($"删除Spirit: {id}");
         }
     }
+
     public void SaveGame()
     {
         SpiritSaveData saveData = new SpiritSaveData();
         saveData.ownedSpirits.AddRange(ownedSpirits.Values);
-        string json = JsonUtility.ToJson(saveData,true);
+
+        // 保存时间戳
+        saveData.lastSaveTime = DateTime.UtcNow.Ticks;
+
+        string json = JsonUtility.ToJson(saveData, true);
         File.WriteAllText(savePath, json);
         Debug.Log($"存档成功：{savePath}");
     }
-    // 读档
+
     public void LoadGame()
     {
         if (!File.Exists(savePath))
@@ -85,10 +86,52 @@ public class SpiritGameManager : MonoBehaviour
         }
 
         Debug.Log($"读档成功: {ownedSpirits.Count} 个 Spirit 恢复");
+
+        //// === 计算离线收益 ===
+        //if (saveData.lastSaveTime > 0)
+        //{
+        //    DateTime lastTime = new DateTime(saveData.lastSaveTime, DateTimeKind.Utc);
+        //    TimeSpan offlineDuration = DateTime.UtcNow - lastTime;
+
+        //    double offlineSeconds = offlineDuration.TotalSeconds;
+        //    double totalReward = 0;
+
+        //    foreach (var spirit in ownedSpirits.Values)
+        //    {
+        //        totalReward += CalculateProduction(spirit, offlineSeconds);
+        //    }
+
+        //    if (totalReward > 0)
+        //    {
+        //        GlobalGameManager.GlobalManager.Instance.currencyManager.AddCoins((long)totalReward);
+        //        Debug.Log($"离线收益：+{(long)totalReward} 金币，离线时长 {offlineDuration.TotalMinutes:F1} 分钟");
+        //        // 这里可以触发 UI 弹窗提示
+        //    }
+        //}
     }
+
+    private double CalculateProduction(SpiritData spirit, double durationSeconds)
+    {
+        // 基础时产值（每秒）
+        double baseValue = spirit.moneyPerSec;
+
+        // 品级倍率
+        double rarityMultiplier = spirit.rarity switch
+        {
+            RarityType.Common => 1.0,
+            RarityType.Rare => 2.5,
+            RarityType.Epic => 5.0,
+            _ => 1.0
+        };
+
+        // 共鸣乘数 (简化为1)
+        double resonanceMultiplier = 1.0;
+
+        return baseValue * rarityMultiplier * resonanceMultiplier * durationSeconds;
+    }
+
     private void OnApplicationQuit()
     {
-        SpiritGameManager.Instance.SaveGame();
+        SaveGame();
     }
 }
-

@@ -1,9 +1,10 @@
 using UnityEngine;
-namespace GloobalGameManager
-{ 
-public class GlobalManager : MonoBehaviour
+
+namespace GlobalGameManager
 {
-    private static GlobalManager _instance;
+    public class GlobalManager : MonoBehaviour
+    {
+        private static GlobalManager _instance;
         public static GlobalManager Instance
         {
             get
@@ -18,12 +19,17 @@ public class GlobalManager : MonoBehaviour
                         DontDestroyOnLoad(go);
                     }
                 }
-
                 return _instance;
             }
         }
-        [Header("管理器引用")]public FountainManager fountainManager;
+
+        [Header("管理器引用")]
+        public FountainManager fountainManager;
         public SpiritGameManager spiritGameManager;
+        public CurrencyManager currencyManager;
+        public UIManager uiManager;
+        public SpiritProductionManager spiritProductionManager;
+
         private void Awake()
         {
             if (_instance == null)
@@ -37,14 +43,22 @@ public class GlobalManager : MonoBehaviour
                 Destroy(gameObject);
             }
         }
+
         private void InitializeManagers()
         {
-            // 初始化各个管理器
             if (fountainManager == null)
                 fountainManager = gameObject.AddComponent<FountainManager>();
-            if(spiritGameManager==null)
-                spiritGameManager=gameObject.AddComponent<SpiritGameManager>();
 
+            if (spiritGameManager == null)
+                spiritGameManager = gameObject.AddComponent<SpiritGameManager>();
+
+            if (currencyManager == null)
+                currencyManager = gameObject.AddComponent<CurrencyManager>();
+
+            if (uiManager == null)
+                uiManager = gameObject.AddComponent<UIManager>();
+            if(spiritProductionManager==null)
+                spiritProductionManager =gameObject.AddComponent<SpiritProductionManager>();
         }
     }
 }

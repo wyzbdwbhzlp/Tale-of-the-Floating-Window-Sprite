@@ -1,3 +1,4 @@
+using GlobalGameManager;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -37,13 +38,13 @@ public class FountainManager : MonoBehaviour
         if (spirit != null)
         {
             spirit.Init(drop.moneyPerSecond, drop.rarity,drop.propety);
-            SpiritGameManager.Instance.RegisterSpirit(new SpiritData
+            GlobalManager.Instance.spiritGameManager.RegisterSpirit(new SpiritData
             {
-                id = drop.spriteName,
+                id = $"{drop.spriteName}_{System.Guid.NewGuid():N}", // 唯一ID
                 rarity = drop.rarity,
                 propety = drop.propety,
                 moneyPerSec = drop.moneyPerSecond,
-                prefabPath = $"Spirits/{drop.prefab.name}" // 建议 prefab 放在 Resources/Spirits 下
+                prefabPath = $"Spirits/{drop.prefab.name}"
             });
             timer = 0;
         }
