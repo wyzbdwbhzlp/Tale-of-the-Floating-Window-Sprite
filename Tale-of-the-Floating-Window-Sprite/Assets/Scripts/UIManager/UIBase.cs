@@ -1,17 +1,17 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Game.UI
 {
     /// <summary>
-    /// 通用 UI 基类 + 简易事件系统
+    /// UI 基类，所有 UI 面板都继承自它
     /// </summary>
     public abstract class UIBase : MonoBehaviour
     {
-        // === UI 生命周期 ===
+
         protected virtual void Awake()
         {
+            Debug.Log($"[UIBase] Awake: {GetType().Name}");
+            // 注册到 UIManager
             GlobalGameManager.GlobalManager.Instance.uiManager.Register(this);
         }
 
@@ -23,33 +23,11 @@ namespace Game.UI
 
         public virtual void Hide()
         {
-            gameObject.SetActive(false);
             OnHide();
+            gameObject.SetActive(false);
         }
 
         protected virtual void OnShow() { }
         protected virtual void OnHide() { }
-
-        // === 事件系统 ===
-        private static Dictionary<string, Action<object>> _eventDic = new();
-
-        public static void Subscribe(string key, Action<object> callback)
-        {
-            if (!_eventDic.ContainsKey(key))
-                _eventDic[key] = delegate { };
-            _eventDic[key] += callback;
-        }
-
-        public static void Unsubscribe(string key, Action<object> callback)
-        {
-            if (_eventDic.ContainsKey(key))
-                _eventDic[key] -= callback;
-        }
-
-        public static void Publish(string key, object data = null)
-        {
-            if (_eventDic.ContainsKey(key))
-                _eventDic[key]?.Invoke(data);
-        }
     }
 }

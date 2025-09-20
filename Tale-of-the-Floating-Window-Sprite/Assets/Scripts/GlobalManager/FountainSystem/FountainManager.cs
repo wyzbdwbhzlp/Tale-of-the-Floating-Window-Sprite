@@ -1,60 +1,73 @@
-using GlobalGameManager;
-using Unity.VisualScripting;
+ï»¿using GlobalGameManager;
 using UnityEngine;
 
 public class FountainManager : MonoBehaviour
 {
-    
-    [SerializeField] private SpiritDropTable spiritDropTable;//¾«ÁéÊôĞÔ±í
+    [SerializeField] private SpiritDropTable spiritDropTable;
 
-    [Header("Éú³Éµã")]
-    [SerializeField] private Transform spawnPoint;
-    [Header("¾«ÁéÉú³ÉÊı¾İ")]
+    [Header("ç”ŸæˆåŒºåŸŸ (æŒ‚è½½å¤šä¸ª BoxCollider2D)")]
+    public BoxCollider2D[] spawnAreas;
+
+    [Header("ç²¾çµç”Ÿæˆæ•°æ®")]
     public float spiritStoreLimitation;
-    public float spiritGenerationTimer;
+    public float spiritGenerationTimer = 10f;
 
-   [SerializeField] private float timer = 0f;//¾«ÁéÉú³É¼ÆÊ±Æ÷
-    private int currentSpirits = 0;//µ±Ç°µÄ¾«ÁéÊı
+    private float timer = 0f;
+    private int currentSpirits = 0;
 
     private void Update()
     {
-        if (currentSpirits >= spiritStoreLimitation)//Èç¹û¾«ÁéÒÑ´ïÉÏÏŞ¾Í·µ»ØÍË³ö
-            return;
+        if (currentSpirits >= spiritStoreLimitation) return;
 
         timer += Time.deltaTime;
         if (timer >= spiritGenerationTimer)
         {
-            Debug.Log("´ïµ½Éú³ÉÊ±¼ä");
             SpawnRandomSpirit();
-            timer = 0;
+            timer = 0f;
         }
     }
+
     private void SpawnRandomSpirit()
     {
         SpiritDrop drop = GetRandomDrop();
-        if (drop == null) return;
-        GameObject obj = Instantiate(drop.prefab, spawnPoint.position, Quaternion.identity);
-        var spirit=obj.GetComponent<Spirit>();
+        if (drop == null || spawnAreas.Length == 0) return;
+
+        // éšæœºé€‰ä¸€ä¸ªåŒºåŸŸ
+        var area = spawnAreas[Random.Range(0, spawnAreas.Length)];
+
+        // å– BoxCollider2D çš„èŒƒå›´
+        Bounds bounds = area.bounds;
+        Vector3 randomPos = new Vector3(
+            Random.Range(bounds.min.x, bounds.max.x),
+            Random.Range(bounds.min.y, bounds.max.y),
+            0f // 2D æ¸¸æˆä¿æŒ Z=0
+        );
+
+        // å®ä¾‹åŒ–
+        GameObject obj = Instantiate(drop.prefab, randomPos, Quaternion.identity);
+        var spirit = obj.GetComponent<Spirit>();
         if (spirit != null)
         {
-            spirit.Init(drop.moneyPerSecond, drop.rarity,drop.propety);
+            spirit.Init(drop.moneyPerSecond, drop.rarity, drop.propety);
+
             GlobalManager.Instance.spiritGameManager.RegisterSpirit(new SpiritData
             {
-                id = $"{drop.spriteName}_{System.Guid.NewGuid():N}", // Î¨Ò»ID
+                id = $"{drop.spriteName}_{System.Guid.NewGuid():N}",
                 rarity = drop.rarity,
                 propety = drop.propety,
                 moneyPerSec = drop.moneyPerSecond,
-                prefabPath = $"Spirits/{drop.prefab.name}"
+                prefabPath = $"Spirits/{drop.propety}/{drop.prefab.name.Replace("(Clone)", "")}"
             });
-            timer = 0;
         }
+
         currentSpirits++;
-        Debug.Log($"Éú³É¾«Áé: {drop.spriteName}, Ã¿Ãë½ğ±Ò: {drop.moneyPerSecond}, Ï¡ÓĞ¶È: {drop.rarity}");
-    
-}
+        Debug.Log($"ç”Ÿæˆç²¾çµ: {drop.spriteName}, ä½ç½®: {randomPos}");
+    }
+
     private SpiritDrop GetRandomDrop()
     {
-        if(spiritDropTable.drops.Length==0)return null;
+        if (spiritDropTable.drops.Length == 0) return null;
+
         float totalRate = 0f;
         foreach (var drop in spiritDropTable.drops)
             totalRate += drop.dropRate;
@@ -68,6 +81,5 @@ public class FountainManager : MonoBehaviour
         }
 
         return spiritDropTable.drops[0];
-
     }
 }

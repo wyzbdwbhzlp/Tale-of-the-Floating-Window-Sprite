@@ -1,19 +1,20 @@
 using UnityEngine;
-using Game.UI;
+using System;
+
 public class CurrencyManager : MonoBehaviour
 {
-   
+    [SerializeField] private long coins = 0;
 
-    [SerializeField]private long coins = 0;
+    // 定义一个事件，任何 UI 都可以订阅
+    public event Action<long> OnCoinsChanged;
 
     public long GetCoins() => coins;
 
     public void AddCoins(long amount)
     {
         coins += amount;
-        UIBase.Publish("CoinChanged", coins);
+        OnCoinsChanged?.Invoke(coins); // 触发事件
         Debug.Log($"AddCoins: {amount}, total = {coins}");
-
     }
 
     public bool SpendCoins(long amount)
@@ -21,7 +22,7 @@ public class CurrencyManager : MonoBehaviour
         if (coins >= amount)
         {
             coins -= amount;
-            UIBase.Publish("CoinChanged", coins);
+            OnCoinsChanged?.Invoke(coins);
             return true;
         }
         return false;

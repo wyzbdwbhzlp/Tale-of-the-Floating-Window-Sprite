@@ -1,3 +1,4 @@
+﻿using Game.UI;
 using UnityEngine;
 
 namespace GlobalGameManager
@@ -5,15 +6,18 @@ namespace GlobalGameManager
     public class GlobalManager : MonoBehaviour
     {
         private static GlobalManager _instance;
+
         public static GlobalManager Instance
         {
             get
             {
                 if (_instance == null)
                 {
-                    _instance = FindObjectOfType<GlobalManager>();
+                    // 查找场景中已有的 GlobalManager
+                    _instance = FindFirstObjectByType<GlobalManager>();
                     if (_instance == null)
                     {
+                        // 如果没有，就新建一个
                         GameObject go = new GameObject("GlobalManager");
                         _instance = go.AddComponent<GlobalManager>();
                         DontDestroyOnLoad(go);
@@ -23,7 +27,7 @@ namespace GlobalGameManager
             }
         }
 
-        [Header("����������")]
+        [Header("管理器引用")]
         public FountainManager fountainManager;
         public SpiritGameManager spiritGameManager;
         public CurrencyManager currencyManager;
@@ -36,6 +40,11 @@ namespace GlobalGameManager
             {
                 _instance = this;
                 DontDestroyOnLoad(gameObject);
+
+                
+                if (uiManager == null)
+                    uiManager = gameObject.AddComponent<UIManager>();
+
                 InitializeManagers();
             }
             else if (_instance != this)
@@ -55,10 +64,8 @@ namespace GlobalGameManager
             if (currencyManager == null)
                 currencyManager = gameObject.AddComponent<CurrencyManager>();
 
-            if (uiManager == null)
-                uiManager = gameObject.AddComponent<UIManager>();
-            if(spiritProductionManager==null)
-                spiritProductionManager =gameObject.AddComponent<SpiritProductionManager>();
+            if (spiritProductionManager == null)
+                spiritProductionManager = gameObject.AddComponent<SpiritProductionManager>();
         }
     }
 }

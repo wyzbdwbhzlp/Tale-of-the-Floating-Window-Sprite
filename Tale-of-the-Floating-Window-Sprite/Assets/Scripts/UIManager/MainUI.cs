@@ -1,11 +1,9 @@
-using System.Collections.Generic;
-using Game.UI;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-
-using System.Collections;
-
+using GlobalGameManager;
+using Game.UI;
 
 public class MainUI : UIBase
 {
@@ -17,31 +15,46 @@ public class MainUI : UIBase
     [SerializeField] private Button minimizeButton;
     [SerializeField] private Button storeButton;
     [SerializeField] private Button spiritTreeButton;
-    private bool isMinimized = false;
+    [SerializeField] private Button deleteButton;
 
-    private long currentCoinValue = 0;      // 当前显示的金币
-    private Coroutine crawlCoroutine;       // 用于控制协程
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    private bool isMinimized = false;
+    private long currentCoinValue = 0;
+    private Coroutine crawlCoroutine;
+
     protected override void OnShow()
     {
-        Subscribe("CoinChanged", OnCoinChanged);
+        // 订阅金币事件
+        var currency = GlobalManager.Instance.currencyManager;
+        currency.OnCoinsChanged += OnCoinChanged;
+
+        // 初始化显示
+        OnCoinChanged(currency.GetCoins());
+
+        // 按钮绑定
         minimizeButton.onClick.AddListener(OnMinimizeClick);
-        //storeButton.onClick.AddListener(OnStoreClick);
-        //spiritTreeButton.onClick.AddListener(OnSpiritTreeClick);
-
+        storeButton.onClick.AddListener(OnStoreClick);
+        deleteButton.onClick.AddListener(OnDeleteClick);
     }
-    // === 事件回调 ===
-    private void OnCoinChanged(object data)
-    {
-        long newCoinValue = (long)data;
 
+    protected override void OnHide()
+    {
+        var currency = GlobalManager.Instance.currencyManager;
+        if (currency != null)
+            currency.OnCoinsChanged -= OnCoinChanged;
+
+        minimizeButton.onClick.RemoveAllListeners();
+        storeButton.onClick.RemoveAllListeners();
+        deleteButton.onClick.RemoveAllListeners();
+    }
+
+    private void OnCoinChanged(long newCoinValue)
+    {
         if (crawlCoroutine != null)
             StopCoroutine(crawlCoroutine);
-        Debug.Log($"收到事件 CoinChanged: {newCoinValue}");
 
         crawlCoroutine = StartCoroutine(CrawlToTarget(newCoinValue));
-
     }
+
     private IEnumerator CrawlToTarget(long targetValue)
     {
         long startValue = currentCoinValue;
@@ -53,16 +66,15 @@ public class MainUI : UIBase
             float progress = Mathf.Clamp01(timer / coinCrawlDuration);
 
             long interpolated = (long)Mathf.Lerp(startValue, targetValue, progress);
-
-            coinText.text = $"金币: {interpolated:D7}"; // 7位数，前面补0
+            coinText.text = $"{interpolated:D7}";
             yield return null;
         }
 
-        coinText.text = $"金币: {targetValue:D7}";
+        coinText.text = $"{targetValue:D7}";
         currentCoinValue = targetValue;
         crawlCoroutine = null;
     }
-    // === 按钮逻辑 ===
+
     private void OnMinimizeClick()
     {
         isMinimized = !isMinimized;
@@ -71,13 +83,15 @@ public class MainUI : UIBase
         spiritTreeButton.gameObject.SetActive(!isMinimized);
     }
 
-    //private void OnStoreClick()
-    //{
-    //    UIManager.Instance.Show<StoreUI>();
-    //}
+    private void OnStoreClick()
+    {
+        GlobalManager.Instance.uiManager.Hide<MainUI>();
+        //GlobalManager.Instance.uiManager.Show<StoreUI>();
+    }
 
-    //private void OnSpiritTreeClick()
-    //{
-    //    UIManager.Instance.Show<SpiritTreeUI>();
-    //}
+    private void OnDeleteClick()
+    {
+        GlobalManager.Instance.spiritGameManager.DeleteSave();
+        Debug.Log("已清除存档");
+    }
 }

@@ -1,78 +1,115 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-    [System.Serializable]
-    public class SpiritData {
-        public string id;
-        public RarityType rarity;
-        public SpiritPropety propety;
-        public float moneyPerSec;
-        public string prefabPath;
-    }
-    [System.Serializable]
-    public class SpiritSaveData
-    {
-        public List<SpiritData> ownedSpirits = new List<SpiritData>();
-        public long lastSaveTime; // ´æ´¢×îºóÒ»´Î±£´æÊ±¼ä (Ticks)
-
+[System.Serializable]
+public class SpiritData
+{
+    public string id;                 // åç§°æˆ–ç±»å‹ï¼Œæ¯”å¦‚ "FireSpirit"
+    public RarityType rarity;
+    public SpiritPropety propety;
+    public float moneyPerSec;
+    public string prefabPath;         // Resources è·¯å¾„
 }
+
+[System.Serializable]
+public class SpiritSaveData
+{
+    public List<SpiritData> ownedSpirits = new List<SpiritData>();
+    public long lastSaveTime; // å­˜æ¡£æ—¶é—´æˆ³
+}
+
 public class SpiritGameManager : MonoBehaviour
 {
-    
-    private Dictionary<string, SpiritData> ownedSpirits = new Dictionary<string, SpiritData>();
+    // ä¸€ä¸ª key å¯¹åº”å¤šä¸ª Spirit
+    private Dictionary<string, List<SpiritData>> ownedSpirits = new Dictionary<string, List<SpiritData>>();
     private string savePath;
 
     private void Awake()
     {
-       
-
         savePath = Path.Combine(Application.persistentDataPath, "spirits.json");
-        LoadGame();
+        //LoadGame();
     }
 
+    /// <summary>
+    /// æ³¨å†Œç²¾çµï¼ˆæ”¯æŒåŒåï¼‰
+    /// </summary>
     public void RegisterSpirit(SpiritData data)
     {
         if (!ownedSpirits.ContainsKey(data.id))
         {
-            ownedSpirits[data.id] = data;
-            Debug.Log($"×¢²áSpirit:{data.id}");
+            ownedSpirits[data.id] = new List<SpiritData>();
+        }
+        ownedSpirits[data.id].Add(data);
+        Debug.Log($"æ³¨å†Œ Spirit: {data.id}, å½“å‰æ•°é‡: {ownedSpirits[data.id].Count}");
+    }
+
+    /// <summary>
+    /// è·å–æŸç§ç²¾çµçš„æ‰€æœ‰å®ä¾‹
+    /// </summary>
+    public IEnumerable<SpiritData> GetSpirits(string id)
+    {
+        return ownedSpirits.ContainsKey(id) ? ownedSpirits[id] : new List<SpiritData>();
+    }
+
+    /// <summary>
+    /// è·å–æ‰€æœ‰ç²¾çµï¼ˆéå†å­—å…¸é‡Œçš„æ‰€æœ‰ Listï¼‰
+    /// </summary>
+    public IEnumerable<SpiritData> GetAllSpirits()
+    {
+        foreach (var list in ownedSpirits.Values)
+        {
+            foreach (var spirit in list)
+            {
+                yield return spirit;
+            }
         }
     }
 
-    public SpiritData GetSpirit(string id) =>
-        ownedSpirits.ContainsKey(id) ? ownedSpirits[id] : null;
-
-    public IEnumerable<SpiritData> GetAllSpirits() => ownedSpirits.Values;
-
-    public void RemoveSpirit(string id)
+    /// <summary>
+    /// åˆ é™¤æŸä¸ªå…·ä½“çš„ç²¾çµï¼ˆæŒ‰ç´¢å¼•æˆ–å¯¹è±¡åˆ é™¤ï¼‰
+    /// </summary>
+    public void RemoveSpirit(string id, SpiritData target)
     {
         if (ownedSpirits.ContainsKey(id))
         {
-            ownedSpirits.Remove(id);
-            Debug.Log($"É¾³ıSpirit: {id}");
+            ownedSpirits[id].Remove(target);
+            if (ownedSpirits[id].Count == 0)
+                ownedSpirits.Remove(id);
+
+            Debug.Log($"åˆ é™¤ Spirit: {id}, å‰©ä½™æ•°é‡: {(ownedSpirits.ContainsKey(id) ? ownedSpirits[id].Count : 0)}");
         }
     }
 
+    /// <summary>
+    /// å­˜æ¡£
+    /// </summary>
     public void SaveGame()
     {
         SpiritSaveData saveData = new SpiritSaveData();
-        saveData.ownedSpirits.AddRange(ownedSpirits.Values);
 
-        // ±£´æÊ±¼ä´Á
+        foreach (var list in ownedSpirits.Values)
+        {
+            saveData.ownedSpirits.AddRange(list);
+        }
+
         saveData.lastSaveTime = DateTime.UtcNow.Ticks;
 
         string json = JsonUtility.ToJson(saveData, true);
         File.WriteAllText(savePath, json);
-        Debug.Log($"´æµµ³É¹¦£º{savePath}");
+        Debug.Log($"å­˜æ¡£æˆåŠŸï¼š{savePath}");
     }
 
+    /// <summary>
+    /// è¯»æ¡£
+    /// </summary>
+    /// 
     public void LoadGame()
     {
         if (!File.Exists(savePath))
         {
-            Debug.Log("Ã»ÓĞ´æµµ£¬Ìø¹ı¶Áµµ¡£");
+            Debug.Log("æ²¡æœ‰å­˜æ¡£ï¼Œè·³è¿‡è¯»æ¡£ã€‚");
             return;
         }
 
@@ -82,54 +119,41 @@ public class SpiritGameManager : MonoBehaviour
         ownedSpirits.Clear();
         foreach (var s in saveData.ownedSpirits)
         {
-            ownedSpirits[s.id] = s;
+            RegisterSpirit(s);
+
+           
+            GameObject prefab = Resources.Load<GameObject>(s.prefabPath);
+            if (prefab != null)
+            {
+                GameObject obj = Instantiate(prefab);
+                var spirit = obj.GetComponent<Spirit>();
+                if (spirit != null)
+                {
+                    spirit.Init(s.moneyPerSec, s.rarity, s.propety);
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"âŒ æ— æ³•åŠ è½½ç²¾çµ prefab: {s.prefabPath}");
+            }
         }
 
-        Debug.Log($"¶Áµµ³É¹¦: {ownedSpirits.Count} ¸ö Spirit »Ö¸´");
-
-        //// === ¼ÆËãÀëÏßÊÕÒæ ===
-        //if (saveData.lastSaveTime > 0)
-        //{
-        //    DateTime lastTime = new DateTime(saveData.lastSaveTime, DateTimeKind.Utc);
-        //    TimeSpan offlineDuration = DateTime.UtcNow - lastTime;
-
-        //    double offlineSeconds = offlineDuration.TotalSeconds;
-        //    double totalReward = 0;
-
-        //    foreach (var spirit in ownedSpirits.Values)
-        //    {
-        //        totalReward += CalculateProduction(spirit, offlineSeconds);
-        //    }
-
-        //    if (totalReward > 0)
-        //    {
-        //        GlobalGameManager.GlobalManager.Instance.currencyManager.AddCoins((long)totalReward);
-        //        Debug.Log($"ÀëÏßÊÕÒæ£º+{(long)totalReward} ½ğ±Ò£¬ÀëÏßÊ±³¤ {offlineDuration.TotalMinutes:F1} ·ÖÖÓ");
-        //        // ÕâÀï¿ÉÒÔ´¥·¢ UI µ¯´°ÌáÊ¾
-        //    }
-        //}
+        Debug.Log($"è¯»æ¡£æˆåŠŸ: {saveData.ownedSpirits.Count} ä¸ª Spirit æ¢å¤");
     }
-
-    private double CalculateProduction(SpiritData spirit, double durationSeconds)
+    public void DeleteSave()
     {
-        // »ù´¡Ê±²úÖµ£¨Ã¿Ãë£©
-        double baseValue = spirit.moneyPerSec;
-
-        // Æ·¼¶±¶ÂÊ
-        double rarityMultiplier = spirit.rarity switch
+        if (File.Exists(savePath))
         {
-            RarityType.Common => 1.0,
-            RarityType.Rare => 2.5,
-            RarityType.Epic => 5.0,
-            _ => 1.0
-        };
+            File.Delete(savePath);
+            Debug.Log("ç²¾çµå­˜æ¡£å·²åˆ é™¤ï¼");
+        }
+        else
+        {
+            Debug.Log("æ²¡æœ‰æ‰¾åˆ°å­˜æ¡£æ–‡ä»¶ï¼Œè·³è¿‡åˆ é™¤ã€‚");
+        }
 
-        // ¹²Ãù³ËÊı (¼ò»¯Îª1)
-        double resonanceMultiplier = 1.0;
-
-        return baseValue * rarityMultiplier * resonanceMultiplier * durationSeconds;
+        ownedSpirits.Clear();
     }
-
     private void OnApplicationQuit()
     {
         SaveGame();
